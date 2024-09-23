@@ -1,0 +1,283 @@
+module door_lock(input d_sensor, output buzzer,output
+LED, input clock, input reset);
+reg buzzer;
+reg LED;
+always@(posedge clock)
+if(reset==1'b1) begin
+buzzer<=1'b0;
+LED<=1'b0;
+end
+else begin
+if(d_sensor==1'b1) begin
+buzzer<=1'b1;
+LED<=1'b1;
+end
+else begin
+buzzer<=1'b0;
+LED<=1'b0;
+end
+#5 if(reset==1'b1)begin //A delay of 5 secs is given for the
+driver to respond
+buzzer<=1'b0;
+LED<=1'b0;
+end
+end
+endmodule
+module seat_belt(input s_sensor,output s_buzzer,output
+s_LED,input clock,input reset);
+reg s_buzzer;
+reg s_LED;
+always@(posedge clock)
+if(reset==1'b1) begin
+s_buzzer<=1'b0;
+s_LED<=1'b0;
+end
+else begin
+if(s_sensor==1'b1) begin
+s_buzzer<=1'b1;
+s_LED<=1'b1;
+end
+else begin
+s_buzzer<=1'b0;
+s_LED<=1'b0;
+end
+#5 if(reset==1'b1)begin //A delay of 5 secs is given for the
+driver to respond
+s_buzzer<=1'b0;
+s_LED<=1'b0;
+end
+end
+endmodule
+module air_bags(input clock,input A_reset,input[7:0]
+Ax,input[7:0] Ay,input[7:0] Az,output
+A_buzzer,output Air_bag,output enable_mobile);
+reg A_buzzer;
+reg Air_bag ;
+reg enable_mobile;
+always@(posedge clock) begin
+if(Ax>=8'b00101000||Ay>=8'b0010100||Az>=8'b001010
+0) begin
+if(A_reset==1'b1) begin
+Air_bag<=1'b0;
+enable_mobile<=1'b0;
+A_buzzer<=1'b0;
+end
+else begin
+Air_bag<=1'b1;
+enable_mobile<=1'b1;
+A_buzzer<=1'b1;
+end
+end
+end
+endmodule
+module sensor (trig, dist, clk, echo);
+output reg trig;
+reg clear;
+input clk, echo;
+reg [3:0] timer;
+output reg [3:0] dist;
+always @ (posedge clk)
+begin
+timer <= timer+1; //timer will start soon as positive clock
+pulse is detected
+if(timer == 10) //It takes 10 us to send pulse from sensor
+trig = 1; //then,trig is high after 10us
+else if (echo) //when echo is high, dist counting starts,
+trig goes to low, led turns on
+begin
+dist <= dist + 1; //echo pulse width
+trig <= 0;
+end
+if (dist <= 38) //max echo back time = 38 us without
+obstacles
+begin //then everything will be back to initial condition
+clear =1;
+dist <= 0;
+timer <=0;
+end
+end
+endmodule
+module modified_booth_multiplier(
+p,a,b,clk
+);
+output [31:0] p;
+input [15:0] a, b;
+input clk;
+reg [31:0] p,ans;
+integer i, lookup_tbl;
+integer operate;
+initial
+begin
+p=31'b0;
+ans=31'b0;
+end
+always @(negedge clk)
+begin
+p=16'b0;
+for(i=1;i<=15;i=i+2)
+begin
+if(i==1)
+lookup_tbl = 0;
+else
+lookup_tbl = b[i-2];
+lookup_tbl = lookup_tbl + 4*b[i] + 2*b[i-1];
+if(lookup_tbl == 0 || lookup_tbl == 7)
+operate = 0;
+else if(lookup_tbl == 3 || lookup_tbl == 4)
+operate = 2;
+else
+operate = 1;
+if(b[i] == 1)
+operate = -1*operate;
+case(operate)
+1:
+begin
+ans=a;
+ans=ans<<(i-1);
+p=p+ans;
+end
+2:
+begin
+ans=a<<1;
+ans=ans<<(i-1);
+p=p+ans;
+end
+-1:
+begin
+ans=~a+1;
+ans=ans<<(i-1);
+p=p+ans;
+end
+-2:
+begin
+ans=a<<1;
+ans=~ans+1;
+ans=ans<<(i-1);
+p=p+ans;
+end
+endcase
+end
+end
+endmodule
+module Safety_system(input clk,output trig,
+input echo,output [16:0]distance,
+input A_reset,
+input[7:0] Ax,input[7:0] Ay,
+input[7:0] Az,
+output A_buzzer,
+output Air_bag,output enable_mobile
+,input s1_sensor,output s1_buzzer,
+output s1_LED,input s1_reset,
+input s2_sensor,output s2_buzzer,
+output s2_LED,input s2_reset,
+input s3_sensor,output s3_buzzer,
+output s3_LED,input s3_reset,
+input s4_sensor,output s4_buzzer,
+output s4_LED,input s4_reset,
+input d1_sensor,output d1_buzzer,
+output d1_LED,input d1_reset,
+input d2_sensor,output d2_buzzer,
+output d2_LED,input d2_reset,
+input d3_sensor,output d3_buzzer,
+output d3_LED,input d3_reset,
+input d4_sensor,output d4_buzzer,
+output d4_LED,input d4_reset
+);
+wire dist;
+sensor us_sensor(trig, dist, clk, echo);
+modified_booth_multiplier mult (
+distance,16'd340,dist,clk
+);
+air_bags Bags(
+clk,A_reset,Ax,Ay,Az,A_buzzer,Air_bag,enable_mobile);
+seat_belt belt1(s1_sensor,s1_buzzer,s1_LED,clk,s1_reset);
+seat_belt belt2(s2_sensor,s2_buzzer,s2_LED,clk,s2_reset);
+seat_belt belt3(s3_sensor,s3_buzzer,s3_LED,clk,s3_reset);
+seat_belt belt4(s4_sensor,s4_buzzer,s4_LED,clk,s4_reset);
+door_lock
+lock1(d1_sensor,d1_buzzer,d1_LED,clk,d1_reset);
+door_lock
+lock2(d2_sensor,d2_buzzer,d2_LED,clk,d2_reset);
+door_lock
+lock3(d3_sensor,d3_buzzer,d3_LED,clk,d3_reset);
+door_lock
+lock4(d4_sensor,d4_buzzer,d4_LED,clk,d4_reset);
+endmodule
+TEST BENCH:
+module safety_control_system_tb(reg clk; wire trig;
+reg echo;wire [16:0]distance;
+reg A_reset;
+reg[7:0] Ax,Ay,Az;
+wire A_buzzer; wire Air_bag;
+wire enable_mobile;
+reg s1_sensor;wire s1_buzzer;
+wire s1_LED;reg s1_reset;
+reg s2_sensor;wire s2_buzzer;
+wire s2_LED;reg s2_reset;
+reg s3_sensor;wire s3_buzzer;
+wire s3_LED;reg s3_reset;
+reg s4_sensor;wire s4_buzzer;
+wire s4_LED;reg s4_reset;
+reg d1_sensor;wire d1_buzzer;
+wire d1_LED;reg d1_reset;
+reg d2_sensor;wire d2_buzzer;
+wire d2_LED;reg d2_reset;
+reg d3_sensor;wire d3_buzzer;
+wire d3_LED;reg d3_reset;
+reg d4_sensor;wire d4_buzzer;
+wire d4_LED;reg d4_reset;
+Safety_system uut( clk, trig,
+echo,distance, A_reset,
+Ax,Ay,
+Az,
+A_buzzer,
+Air_bag,enable_mobile
+, s1_sensor,s1_buzzer,
+s1_LED,s1_reset,
+s2_sensor,s2_buzzer,
+s2_LED,s2_reset,
+s3_sensor, s3_buzzer,
+s3_LED, s3_reset,
+s4_sensor, s4_buzzer,
+s4_LED,s4_reset,
+d1_sensor, d1_buzzer,
+d1_LED,d1_reset,
+d2_sensor,d2_buzzer,
+d2_LED,d2_reset,
+d3_sensor, d3_buzzer,
+d3_LED,d3_reset,
+d4_sensor, d4_buzzer,
+d4_LED, d4_reset
+);
+initial begin clk=1;echo=1'b1;
+end
+always begin
+#100 clk=~clk;
+end
+always begin
+#6 echo=~echo;
+end
+initial begin
+A_reset=1'b0;d1_reset=1'b0;d2_reset=1'b0;d3_reset=1'b0;
+d4_reset=1'b0;
+s1_sensor=1'b1;s2_sensor=1'b1;s3_sensor=1'b0;s4_senso
+r=1'b0;
+d1_sensor=1'b0;d2_sensor=1'b0;d3_sensor=1'b1;d4_sens
+or=1'b1;s1_reset=0;
+s2_reset=1'b0;s3_reset=1'b0;s4_reset=1'b0;Ax=8'b010111
+00;Ay=8'b01010100;Az=8'b11010100
+; #10
+A_reset=1'b0;d1_reset=1'b0;d2_reset=1'b0;d3_reset=1'b0;
+d4_reset=1'b0;
+s1_sensor=1'b1;s2_sensor=1'b0;s3_sensor=1'b1;s4_senso
+r=1'b1;
+d1_sensor=1'b1;d2_sensor=1'b1;d3_sensor=1'b0;d4_sens
+or=1'b0;s1_reset=0;
+s2_reset=1'b0;s3_reset=1'b0;s4_reset=1'b0;Ax=8'b000111
+00;Ay=8'b00010100;Az=8'b00010100
+;
+end
+always begin
+#5 clk=~clk;
+end
+endmodule
